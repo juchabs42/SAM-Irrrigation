@@ -194,10 +194,45 @@ function renderChart(){
   }
   ctx.strokeStyle="#8f8185";ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,pad.top+h);ctx.lineTo(width-pad.right,pad.top+h);ctx.stroke();
   rows.forEach((r,i)=>{
-    const x=pad.left+i*group+group/2;
-    draw(x-bar-2,r.etp,"#d98d3d");draw(x+2,r.rain,"#4b98c7");
-    ctx.fillStyle=r.date<=today?"#57494d":"#8B1E2D";ctx.font="9px system-ui";ctx.textAlign="center";ctx.textBaseline="alphabetic";
-    ctx.fillText(new Date(r.date+"T12:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}),x,height-14);
+  const x=pad.left+i*group+group/2;
+
+  draw(x-bar-2,r.etp,"#d98d3d");
+  draw(x+2,r.rain,"#4b98c7");
+
+  /*
+   * Sur téléphone, on affiche une date sur deux.
+   * Sur écran large, on affiche toutes les dates.
+   */
+  const afficherDate =
+    width >= 650 ||
+    i % 2 === 0 ||
+    i === rows.length - 1;
+
+  if (afficherDate) {
+    ctx.fillStyle =
+      r.date <= today ? "#57494d" : "#8B1E2D";
+
+    ctx.font =
+      width < 450
+        ? "8px system-ui"
+        : "9px system-ui";
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+
+    ctx.fillText(
+      new Date(r.date + "T12:00:00")
+        .toLocaleDateString(
+          "fr-FR",
+          {
+            day: "2-digit",
+            month: "2-digit"
+          }
+        ),
+      x,
+      height - 14
+    );
+  }
     function draw(bx,v,c){const bh=v/max*h;ctx.fillStyle=c;ctx.fillRect(bx,pad.top+h-bh,bar,bh)}
   });
   const split=rows.findIndex(r=>r.date>today);
