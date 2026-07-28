@@ -1,5 +1,5 @@
 
-const CACHE="sam-irrigation-weekly-v1";
+const CACHE="sam-irrigation-weekly-v2-clean";
 const ASSETS=[
   "./","./index.html","./css/style.css","./js/app.js","./manifest.webmanifest",
   "./assets/logo-sudexpe.jpg","./assets/icon-192.png","./assets/icon-512.png",

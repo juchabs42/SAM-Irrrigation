@@ -74,6 +74,7 @@ function saveExpert(){
   persist(s);render();
 }
 
+
 function toggleMode(){const s=settings();s.expert=!s.expert;persist(s);applyMode(s.expert)}
 function applyMode(expert){q("#expertSection").hidden=!expert;q("#modeButton").textContent=expert?"Mode Simple":"Mode Expert"}
 function toggleRateFields(){const calc=val("rateMode")==="calculated";q("#knownRateLabel").hidden=calc;q("#emitterFlowLabel").hidden=!calc;q("#emitterSpacingLabel").hidden=!calc;q("#rowSpacingLabel").hidden=!calc}
@@ -102,19 +103,20 @@ async function refreshWeather(){
   }finally{setLoading(false)}
 }
 
-
+function systemRate(s){
+  if(s.rateMode==="calculated"){
+    const den=num(s.emitterSpacing)*num(s.rowSpacing);
+    return den>0?num(s.emitterFlow)/den:0;
+  }
+  return num(s.knownRate);
+}
 
 function render(cachedAt=null){
   if(!weatherRows.length)return;
   const s=settings(),today=localDate(new Date()),kc=activeKc(s);
   const past=weatherRows.filter(r=>r.date>s.lastIrrigation&&r.date<=today);
   const pastEtc=sum(past.map(r=>r.etp*kc));
-  const pastRainEff =
-sum(
-    past.map(r=>r.rain)
-)
-*
-num(s.rainEfficiency);
+  const pastRainEff=sum(past.map(r=>r.rain))*num(s.rainEfficiency);
   const pastDeficit=Math.max(0,pastEtc-pastRainEff);
 
   const future=weatherRows.filter(r=>r.date>today).slice(0,7);
@@ -141,18 +143,10 @@ num(s.rainEfficiency);
   q("#futureEffectiveRain").textContent=`${round(futureRainEff,2)} mm`;
   q("#futureNetNeed").textContent=`${round(futureNet,2)} mm`;
   q("#updatedAt").textContent=cachedAt?`Données enregistrées le ${new Date(cachedAt).toLocaleString("fr-FR")}`:`Météo actualisée à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
-  renderProgram(count,dose,volume,duration);
   renderChart();
 }
 
-function renderProgram(count,dose,volume,duration){
-  const box=q("#programList");box.innerHTML="";
-  for(let i=1;i<=count;i++){
-    const row=document.createElement("div");row.className="program-row";
-    row.innerHTML=`<span>Apport ${i}</span><strong>${round(dose,2)} mm · ${round(volume,1)} m³ · ${formatDuration(duration)}</strong>`;
-    box.appendChild(row);
-  }
-}
+
 
 function renderChart(){
   const canvas=q("#weatherChart"),ctx=canvas.getContext("2d"),ratio=window.devicePixelRatio||1;
@@ -172,51 +166,10 @@ function renderChart(){
   }
   ctx.strokeStyle="#8f8185";ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,pad.top+h);ctx.lineTo(width-pad.right,pad.top+h);ctx.stroke();
   rows.forEach((r,i)=>{
-  const x=pad.left+i*group+group/2;
-
-  draw(x-bar-2,r.etp,"#d98d3d");
-  draw(x+2,r.rain,"#4b98c7");
-
-  /*
-   * Sur téléphone, on affiche une date sur deux.
-   * Sur écran large, on affiche toutes les dates.
-   */
-  const afficherDate =
-    width >= 650 ||
-    i % 2 === 0 ||
-    i === rows.length - 1;
-
-  if (afficherDate) {
-    ctx.fillStyle =
-      r.date <= today ? "#57494d" : "#8B1E2D";
-
-    ctx.font =
-      width < 450
-        ? "8px system-ui"
-        : "9px system-ui";
-
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-
-    const estTelephone =
-  window.matchMedia("(max-width: 600px)").matches;
-
-const afficherDate =
-  !estTelephone ||
-  i % 2 === 0;
-
-if (afficherDate) {
-  ctx.fillText(
-    new Date(r.date + "T12:00:00")
-      .toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "2-digit"
-      }),
-    x,
-    height - 14
-  );
-}
-  }
+    const x=pad.left+i*group+group/2;
+    draw(x-bar-2,r.etp,"#d98d3d");draw(x+2,r.rain,"#4b98c7");
+    ctx.fillStyle=r.date<=today?"#57494d":"#8B1E2D";ctx.font="9px system-ui";ctx.textAlign="center";ctx.textBaseline="alphabetic";
+    ctx.fillText(new Date(r.date+"T12:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}),x,height-14);
     function draw(bx,v,c){const bh=v/max*h;ctx.fillStyle=c;ctx.fillRect(bx,pad.top+h-bh,bar,bh)}
   });
   const split=rows.findIndex(r=>r.date>today);

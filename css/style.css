@@ -14,7 +14,7 @@ h2{margin:0 0 14px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax
 .button-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.primary-button,.secondary-button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}.primary-button{background:var(--red);color:#fff}.secondary-button{background:#eadde0;color:var(--red-dark)}
 .result-card{border-top:6px solid var(--red)}.main-result{text-align:center;padding:22px;background:var(--red-soft);border-radius:16px;margin:12px 0 16px}.main-result strong{display:block;color:var(--red);font-size:2.4rem}.main-result span{color:#6f5a60}
 .result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.result-grid article{padding:16px;border-radius:15px;background:#faf7f8;border:1px solid #eee5e7}.result-grid span{display:block;color:#74676b;font-size:.84rem}.result-grid strong{display:block;margin-top:6px;font-size:1.2rem}
-.program-list{margin-top:16px;display:grid;gap:8px}.program-row{display:flex;justify-content:space-between;gap:16px;padding:12px 14px;border-radius:12px;background:#faf7f8}.program-row strong{color:var(--red)}
-.correction-row input{width:100%;padding:9px;border:1px solid #d9cdd0;border-radius:9px}.legend{font-size:.82rem;color:#75686c}
+
+.legend{font-size:.82rem;color:#75686c}
 canvas{width:100%;display:block}.formula-card p{margin:8px 0}.install-card{border:1px solid #e0cbd0}.error{background:#ffe8e8;color:#8d1e2d;padding:13px;border-radius:12px}.attribution{text-align:center;color:#86787c;font-size:.75rem}
 @media(max-width:680px){.form-grid,.result-grid{grid-template-columns:1fr}.topbar{align-items:flex-start}.ghost-button{font-size:.78rem}.brand img{width:52px}}
