@@ -6,7 +6,7 @@ const DEFAULTS={
   rainEfficiency:.8,kcOverride:null,
   systemType:"drip",rateMode:"known",knownRate:3,
   emitterFlow:1.6,emitterSpacing:.5,rowSpacing:4,
-  expert:false,rainCorrections:{}
+  expert:false
 };
 const STORAGE_KEY="samIrrigationWeeklyV1";
 const WEATHER_CACHE_KEY="samIrrigationWeeklyWeatherV1";
@@ -37,7 +37,6 @@ function bindEvents(){
   q("#gpsButton").addEventListener("click",useGps);
   q("#calculateButton").addEventListener("click",saveMainAndRender);
   q("#saveExpertButton").addEventListener("click",saveExpert);
-  q("#saveCorrectionsButton").addEventListener("click",saveCorrections);
   q("#rateMode").addEventListener("change",toggleRateFields);
   q("#installButton").addEventListener("click",installApp);
   window.addEventListener("resize",()=>weatherRows.length&&renderChart());
@@ -75,14 +74,6 @@ function saveExpert(){
   persist(s);render();
 }
 
-function saveCorrections(){
-  const s=settings(),cor={...s.rainCorrections};
-  document.querySelectorAll("[data-rain-date]").forEach(i=>{
-    if(i.value==="")delete cor[i.dataset.rainDate];else cor[i.dataset.rainDate]=num(i.value);
-  });
-  s.rainCorrections=cor;persist(s);render();
-}
-
 function toggleMode(){const s=settings();s.expert=!s.expert;persist(s);applyMode(s.expert)}
 function applyMode(expert){q("#expertSection").hidden=!expert;q("#modeButton").textContent=expert?"Mode Simple":"Mode Expert"}
 function toggleRateFields(){const calc=val("rateMode")==="calculated";q("#knownRateLabel").hidden=calc;q("#emitterFlowLabel").hidden=!calc;q("#emitterSpacingLabel").hidden=!calc;q("#rowSpacingLabel").hidden=!calc}
@@ -111,21 +102,19 @@ async function refreshWeather(){
   }finally{setLoading(false)}
 }
 
-function correctedRain(r,s){const c=s.rainCorrections?.[r.date];return c===undefined?r.rain:num(c)}
-function systemRate(s){
-  if(s.rateMode==="calculated"){
-    const den=num(s.emitterSpacing)*num(s.rowSpacing);
-    return den>0?num(s.emitterFlow)/den:0;
-  }
-  return num(s.knownRate);
-}
+
 
 function render(cachedAt=null){
   if(!weatherRows.length)return;
   const s=settings(),today=localDate(new Date()),kc=activeKc(s);
   const past=weatherRows.filter(r=>r.date>s.lastIrrigation&&r.date<=today);
   const pastEtc=sum(past.map(r=>r.etp*kc));
-  const pastRainEff=sum(past.map(r=>correctedRain(r,s)))*num(s.rainEfficiency);
+  const pastRainEff =
+sum(
+    past.map(r=>r.rain)
+)
+*
+num(s.rainEfficiency);
   const pastDeficit=Math.max(0,pastEtc-pastRainEff);
 
   const future=weatherRows.filter(r=>r.date>today).slice(0,7);
@@ -153,7 +142,6 @@ function render(cachedAt=null){
   q("#futureNetNeed").textContent=`${round(futureNet,2)} mm`;
   q("#updatedAt").textContent=cachedAt?`Données enregistrées le ${new Date(cachedAt).toLocaleString("fr-FR")}`:`Météo actualisée à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
   renderProgram(count,dose,volume,duration);
-  renderCorrections(s,today);
   renderChart();
 }
 
@@ -164,16 +152,6 @@ function renderProgram(count,dose,volume,duration){
     row.innerHTML=`<span>Apport ${i}</span><strong>${round(dose,2)} mm · ${round(volume,1)} m³ · ${formatDuration(duration)}</strong>`;
     box.appendChild(row);
   }
-}
-
-function renderCorrections(s,today){
-  const box=q("#rainCorrectionList");box.innerHTML="";
-  weatherRows.filter(r=>r.date<=today).slice(-7).forEach(r=>{
-    const c=s.rainCorrections?.[r.date],row=document.createElement("div");
-    row.className="correction-row";
-    row.innerHTML=`<strong>${formatDate(r.date)}</strong><span>Open-Meteo : ${round(r.rain,1)} mm</span><input type="number" min="0" step="0.1" placeholder="Pluie corrigée" data-rain-date="${r.date}" value="${c===undefined?"":c}">`;
-    box.appendChild(row);
-  });
 }
 
 function renderChart(){
