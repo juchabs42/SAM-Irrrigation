@@ -32,9 +32,11 @@
     <p id="adviceDetail" class="advice-detail"></p>
     <div class="summary-grid">
       <article><span>Besoin actuel</span><strong id="currentNeed">— mm</strong></article>
-      <article><span>Dose après pluie prévue</span><strong id="recommendedDose">— mm</strong></article>
-      <article><span>Volume</span><strong id="volume">— m³</strong></article>
-      <article><span>Durée</span><strong id="duration">—</strong></article>
+      <article><span>Besoin net à 7 jours</span><strong id="need7d">— mm</strong></article>
+      <article><span id="doseLabel">Dose conseillée</span><strong id="recommendedDose">— mm</strong></article>
+      <article><span id="volumeLabel">Volume</span><strong id="volume">— m³</strong></article>
+      <article><span id="durationLabel">Durée</span><strong id="duration">—</strong></article>
+      <article><span>Pluie prévue à 7 jours</span><strong id="rain7d">— mm</strong></article>
     </div>
     <div class="forecast-callout"><span>Pluie prévue à 3 jours</span><strong id="rain3d">— mm</strong><small id="effectiveForecastRain">— mm efficaces</small></div>
   </section>
@@ -52,6 +54,15 @@
   </section>
 
   <section class="card">
+    <div class="section-heading">
+      <div><p class="eyebrow">Préconisation</p><h2 id="scheduleTitle">Programme d’irrigation</h2></div>
+      <span id="scheduleSystem" class="status-badge">—</span>
+    </div>
+    <p id="scheduleIntro" class="muted"></p>
+    <div id="irrigationSchedule" class="schedule-list"></div>
+  </section>
+
+  <section class="card">
     <div class="section-heading"><div><p class="eyebrow">Météo</p><h2>7 jours passés et 7 jours prévus</h2></div><span id="updatedAt" class="muted"></span></div>
     <canvas id="weatherChart" height="270"></canvas>
   </section>
@@ -66,6 +77,7 @@
         <article><span>Pluie brute</span><strong id="rainRaw">— mm</strong></article>
         <article><span>Pluie efficace</span><strong id="rainEffective">— mm</strong></article>
         <article><span>Pluviométrie système</span><strong id="systemRate">— mm/h</strong></article>
+        <article><span>VPD max prévu à 7 jours</span><strong id="vpdMax7d">— kPa</strong></article>
       </div>
     </section>
 
@@ -88,7 +100,7 @@
     <section class="card">
       <div class="section-heading"><div><p class="eyebrow">Système d’irrigation</p><h2>Calcul de la pluviométrie</h2></div></div>
       <div class="form-grid">
-        <label>Type de système<select id="systemType"><option value="drip">Goutte-à-goutte</option><option value="micro">Micro-aspersion</option><option value="sprinkler">Aspersion</option><option value="canon">Canon</option></select></label>
+        <label>Type de système<select id="systemType"><option value="drip">Goutte-à-goutte</option><option value="micro">Micro-aspersion</option><option value="sprinkler">Aspersion</option></select></label>
         <label>Méthode<select id="rateMode"><option value="known">Pluviométrie connue</option><option value="calculated">Calcul goutte-à-goutte</option></select></label>
         <label id="knownRateLabel">Pluviométrie connue (mm/h)<input id="knownRate" type="number" min="0.01" step="0.01"></label>
         <label id="emitterFlowLabel">Débit goutteur (L/h)<input id="emitterFlow" type="number" min="0.01" step="0.01"></label>

@@ -1,32 +1,15 @@
-SAM IRRIGATION — PROTOTYPE V1
+SAM IRRIGATION — V2 SYSTÈMES
 
-FONCTIONS
-- Pommier avec Kc mensuel automatique d'avril à octobre
-- Kc modifiable en mode Expert
-- Open-Meteo : ETP, pluie et VPD
-- 7 jours passés + 7 jours prévisionnels
-- Correction manuelle de la pluie des 7 derniers jours
-- Coefficient de pluie efficace
-- Déduction de la pluie prévue sur 3 jours
-- Calcul de la dose en mm
-- Calcul du volume en m³ pour une surface en hectares
-- Calcul de la durée selon la pluviométrie en mm/h
-- Goutte-à-goutte : calcul possible depuis débit goutteur, espacement goutteurs et inter-rang
-- Modes Simple et Expert
-- GPS ou latitude/longitude manuelles
-- Installation PWA sur Android
-- Dernières données météo disponibles hors connexion
+NOUVELLE LOGIQUE
+- Affichage du besoin net à 7 jours.
+- Goutte-à-goutte : programme quotidien sur 7 jours.
+  Dose quotidienne = max(0, ETc du jour - pluie efficace du jour).
+  Si la pluie efficace couvre l’ETc, la dose vaut 0.
+- Micro-aspersion : un apport hebdomadaire ; si le besoin dépasse 20 mm, fractionnement en deux apports égaux.
+- Aspersion : un apport hebdomadaire.
+- Suppression du canon.
+- Suppression de la courbe rouge VPD du graphique météo.
+- Le VPD reste disponible en mode Expert sous forme de valeur maximale prévue sur 7 jours.
 
-MISE EN LIGNE GRATUITE
-1. Créer un dépôt GitHub public, par exemple sam-irrigation.
-2. Envoyer tous les fichiers et dossiers du ZIP à la racine.
-3. Settings > Pages.
-4. Source : Deploy from a branch.
-5. Branch : main ; dossier : / (root).
-6. Ouvrir l'adresse GitHub Pages.
-
-IMPORTANT
-- Les paramètres sont stockés localement sur le téléphone.
-- Il n'y a ni compte, ni synchronisation entre appareils.
-- Le changement de date du dernier arrosage remet le cumul à zéro à partir de cette date.
-- De novembre à mars, le Kc automatique vaut 0.
+MISE À JOUR
+Remplacer tous les fichiers du dépôt GitHub par ceux de cette archive, puis actualiser l’application deux fois.
