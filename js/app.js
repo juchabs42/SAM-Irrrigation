@@ -1,193 +1,541 @@
 
 const KC_BY_MONTH={4:.6,5:.6,6:.75,7:.9,8:.9,9:.9,10:.6};
+
 const DEFAULTS={
-  surfaceHa:1,latitude:43.793931,longitude:4.014810,
-  lastIrrigation:localDate(new Date()),frequency:7,
-  rainEfficiency:.8,kcOverride:null,
-  systemType:"drip",rateMode:"known",knownRate:3,
-  emitterFlow:1.6,emitterSpacing:.5,rowSpacing:4,
+  surfaceHa:1,
+  latitude:43.793931,
+  longitude:4.014810,
+  lastIrrigation:localDate(new Date()),
+  programStart:localDate(new Date()),
+  programDays:7,
+  frequency:"daily",
+  rainEfficiency:.8,
+  kcOverride:null,
+  systemType:"drip",
+  rateMode:"known",
+  knownRate:3,
+  emitterFlow:1.6,
+  emitterSpacing:.5,
+  rowSpacing:4,
   expert:false
 };
-const STORAGE_KEY="samIrrigationWeeklyV1";
-const WEATHER_CACHE_KEY="samIrrigationWeeklyWeatherV1";
+
+const STORAGE_KEY="samIrrigationPeriodV1";
+const WEATHER_CACHE_KEY="samIrrigationPeriodWeatherV1";
+
 let weatherRows=[];
 let deferredInstallPrompt=null;
 
 document.addEventListener("DOMContentLoaded",()=>{
-  bindEvents();setupInstallPrompt();loadForm();refreshWeather();registerServiceWorker();
+  bindEvents();
+  setupInstallPrompt();
+  loadForm();
+  updatePeriodPreview();
+  refreshWeather();
+  registerServiceWorker();
 });
 
-function q(s){return document.querySelector(s)}
+function q(selector){return document.querySelector(selector)}
 function val(id){return q("#"+id).value}
-function num(v,f=0){const n=Number(v);return Number.isFinite(n)?n:f}
-function round(v,d=2){const f=10**d;return Math.round((num(v)+Number.EPSILON)*f)/f}
-function sum(a){return a.reduce((x,y)=>x+num(y),0)}
-function wait(ms){return new Promise(r=>setTimeout(r,ms))}
-function localDate(date){const p=new Intl.DateTimeFormat("fr-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date);const m=Object.fromEntries(p.map(x=>[x.type,x.value]));return`${m.year}-${m.month}-${m.day}`}
-function formatDate(s){return new Date(s+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"})}
-function formatDuration(hours){if(!Number.isFinite(hours)||hours<=0)return"0 h 00";const t=Math.round(hours*60);return`${Math.floor(t/60)} h ${String(t%60).padStart(2,"0")}`}
-function monthKc(){return KC_BY_MONTH[new Date().getMonth()+1]??0}
-function activeKc(s){return s.kcOverride===null||s.kcOverride===""?monthKc():num(s.kcOverride)}
-function settings(){try{return{...DEFAULTS,...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")}}catch{return{...DEFAULTS}}}
-function persist(s){localStorage.setItem(STORAGE_KEY,JSON.stringify(s))}
+function num(value,fallback=0){const n=Number(value);return Number.isFinite(n)?n:fallback}
+function round(value,decimals=2){const factor=10**decimals;return Math.round((num(value)+Number.EPSILON)*factor)/factor}
+function sum(values){return values.reduce((total,value)=>total+num(value),0)}
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+
+function localDate(date){
+  const parts=new Intl.DateTimeFormat("fr-CA",{
+    timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"
+  }).formatToParts(date);
+  const map=Object.fromEntries(parts.map(part=>[part.type,part.value]));
+  return`${map.year}-${map.month}-${map.day}`;
+}
+
+function addDays(dateString,days){
+  const date=new Date(dateString+"T12:00:00");
+  date.setDate(date.getDate()+days);
+  return localDate(date);
+}
+
+function formatLongDate(dateString){
+  return new Date(dateString+"T12:00:00").toLocaleDateString("fr-FR",{
+    day:"2-digit",month:"2-digit",year:"numeric"
+  });
+}
+
+function formatShortDate(dateString){
+  return new Date(dateString+"T12:00:00").toLocaleDateString("fr-FR",{
+    day:"2-digit",month:"2-digit"
+  });
+}
+
+function formatDuration(hours){
+  if(!Number.isFinite(hours)||hours<=0)return"0 h 00";
+  const totalMinutes=Math.round(hours*60);
+  return`${Math.floor(totalMinutes/60)} h ${String(totalMinutes%60).padStart(2,"0")}`;
+}
+
+function settings(){
+  try{return{...DEFAULTS,...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")}}
+  catch{return{...DEFAULTS}}
+}
+
+function persist(settingsValue){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(settingsValue));
+}
+
+function monthlyKc(dateString){
+  const month=new Date(dateString+"T12:00:00").getMonth()+1;
+  return KC_BY_MONTH[month]??0;
+}
+
+function kcForDate(dateString,settingsValue){
+  if(settingsValue.kcOverride!==null&&settingsValue.kcOverride!==""){
+    return num(settingsValue.kcOverride);
+  }
+  return monthlyKc(dateString);
+}
 
 function bindEvents(){
   q("#refreshButton").addEventListener("click",refreshWeather);
   q("#modeButton").addEventListener("click",toggleMode);
   q("#gpsButton").addEventListener("click",useGps);
-  q("#calculateButton").addEventListener("click",saveMainAndRender);
+  q("#calculateButton").addEventListener("click",saveMainAndCalculate);
   q("#saveExpertButton").addEventListener("click",saveExpert);
+  q("#resetKcButton").addEventListener("click",resetKc);
   q("#rateMode").addEventListener("change",toggleRateFields);
+  q("#programStart").addEventListener("change",updatePeriodPreview);
+  q("#programDays").addEventListener("change",updatePeriodPreview);
   q("#installButton").addEventListener("click",installApp);
   window.addEventListener("resize",()=>weatherRows.length&&renderChart());
 }
 
 function loadForm(){
   const s=settings();
-  ["surfaceHa","latitude","longitude","lastIrrigation","frequency","rainEfficiency","systemType","rateMode","knownRate","emitterFlow","emitterSpacing","rowSpacing"].forEach(id=>q("#"+id).value=s[id]);
-  q("#kcValue").value=s.kcOverride===null?monthKc():s.kcOverride;
-  q("#kcInfo").textContent=`Kc automatique du mois : ${monthKc().toFixed(2)}.`;
-  applyMode(s.expert);toggleRateFields();
+
+  [
+    "surfaceHa","latitude","longitude","lastIrrigation","programStart",
+    "programDays","frequency","rainEfficiency","systemType","rateMode",
+    "knownRate","emitterFlow","emitterSpacing","rowSpacing"
+  ].forEach(id=>q("#"+id).value=s[id]);
+
+  q("#kcValue").value=s.kcOverride===null?"":s.kcOverride;
+  updateKcInfo();
+  applyMode(s.expert);
+  toggleRateFields();
 }
 
-function saveMainAndRender(){
+function updatePeriodPreview(){
+  const start=val("programStart")||localDate(new Date());
+  const days=Math.max(1,num(val("programDays"),7));
+  const end=addDays(start,days-1);
+
+  q("#periodPreview").innerHTML=
+    `<strong>Période calculée :</strong> du ${formatLongDate(start)} au ${formatLongDate(end)} inclus`;
+}
+
+function saveMainAndCalculate(){
   const s=settings();
+
   s.surfaceHa=num(val("surfaceHa"),1);
   s.latitude=num(val("latitude"),DEFAULTS.latitude);
   s.longitude=num(val("longitude"),DEFAULTS.longitude);
   s.lastIrrigation=val("lastIrrigation");
-  s.frequency=num(val("frequency"),7);
+  s.programStart=val("programStart");
+  s.programDays=num(val("programDays"),7);
+  s.frequency=val("frequency");
+
   persist(s);
+  updatePeriodPreview();
   refreshWeather();
 }
 
 function saveExpert(){
   const s=settings();
+
   s.rainEfficiency=num(val("rainEfficiency"),.8);
-  s.kcOverride=num(val("kcValue"),monthKc());
+  s.kcOverride=val("kcValue")===""?null:num(val("kcValue"));
   s.systemType=val("systemType");
   s.rateMode=val("rateMode");
   s.knownRate=num(val("knownRate"),3);
   s.emitterFlow=num(val("emitterFlow"),1.6);
   s.emitterSpacing=num(val("emitterSpacing"),.5);
   s.rowSpacing=num(val("rowSpacing"),4);
-  persist(s);render();
+
+  persist(s);
+  updateKcInfo();
+  render();
 }
 
+function resetKc(){
+  const s=settings();
+  s.kcOverride=null;
+  persist(s);
+  q("#kcValue").value="";
+  updateKcInfo();
+  render();
+}
 
-function toggleMode(){const s=settings();s.expert=!s.expert;persist(s);applyMode(s.expert)}
-function applyMode(expert){q("#expertSection").hidden=!expert;q("#modeButton").textContent=expert?"Mode Simple":"Mode Expert"}
-function toggleRateFields(){const calc=val("rateMode")==="calculated";q("#knownRateLabel").hidden=calc;q("#emitterFlowLabel").hidden=!calc;q("#emitterSpacingLabel").hidden=!calc;q("#rowSpacingLabel").hidden=!calc}
+function updateKcInfo(){
+  const s=settings();
+
+  if(s.kcOverride!==null&&s.kcOverride!==""){
+    q("#kcInfo").textContent=`Kc personnalisé appliqué à toute la période : ${num(s.kcOverride).toFixed(2)}.`;
+    return;
+  }
+
+  q("#kcInfo").textContent=
+    "Kc mensuels automatiques : avril 0,60 · mai 0,60 · juin 0,75 · juillet 0,90 · août 0,90 · septembre 0,90 · octobre 0,60.";
+}
+
+function toggleMode(){
+  const s=settings();
+  s.expert=!s.expert;
+  persist(s);
+  applyMode(s.expert);
+}
+
+function applyMode(expert){
+  q("#expertSection").hidden=!expert;
+  q("#modeButton").textContent=expert?"Mode Simple":"Mode Expert";
+}
+
+function toggleRateFields(){
+  const calculated=val("rateMode")==="calculated";
+  q("#knownRateLabel").hidden=calculated;
+  q("#emitterFlowLabel").hidden=!calculated;
+  q("#emitterSpacingLabel").hidden=!calculated;
+  q("#rowSpacingLabel").hidden=!calculated;
+}
 
 async function refreshWeather(){
-  setLoading(true);hideError();
+  setLoading(true);
+  hideError();
+
   const s=settings();
+
   try{
-    const vars=["et0_fao_evapotranspiration","precipitation_sum"].join(",");
+    const variables=["et0_fao_evapotranspiration","precipitation_sum"].join(",");
     const url=new URL("https://api.open-meteo.com/v1/forecast");
+
     url.search=new URLSearchParams({
-      latitude:s.latitude,longitude:s.longitude,daily:vars,
-      timezone:"Europe/Paris",past_days:"7",forecast_days:"8"
+      latitude:s.latitude,
+      longitude:s.longitude,
+      daily:variables,
+      timezone:"Europe/Paris",
+      past_days:"15",
+      forecast_days:"16"
     }).toString();
-    let r=await fetch(url,{cache:"no-store"});
-    if(!r.ok){await wait(1000);r=await fetch(url,{cache:"no-store"})}
-    if(!r.ok)throw new Error(`Open-Meteo répond ${r.status}.`);
-    const d=await r.json();
-    weatherRows=d.daily.time.map((date,i)=>({date,etp:num(d.daily.et0_fao_evapotranspiration[i]),rain:num(d.daily.precipitation_sum[i])}));
-    localStorage.setItem(WEATHER_CACHE_KEY,JSON.stringify({savedAt:new Date().toISOString(),rows:weatherRows}));
+
+    let response=await fetch(url,{cache:"no-store"});
+
+    if(!response.ok){
+      await wait(1000);
+      response=await fetch(url,{cache:"no-store"});
+    }
+
+    if(!response.ok){
+      throw new Error(`Open-Meteo répond ${response.status}.`);
+    }
+
+    const data=await response.json();
+
+    weatherRows=data.daily.time.map((date,index)=>({
+      date,
+      etp:num(data.daily.et0_fao_evapotranspiration[index]),
+      rain:num(data.daily.precipitation_sum[index])
+    }));
+
+    localStorage.setItem(WEATHER_CACHE_KEY,JSON.stringify({
+      savedAt:new Date().toISOString(),
+      rows:weatherRows
+    }));
+
+    updateDateLimits();
     render();
-  }catch(e){
-    const c=JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY)||"null");
-    if(c?.rows?.length){weatherRows=c.rows;showError("Données hors connexion : dernière météo enregistrée.");render(c.savedAt)}
-    else showError("Impossible de récupérer la météo. "+e.message);
-  }finally{setLoading(false)}
+  }catch(error){
+    const cached=JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY)||"null");
+
+    if(cached?.rows?.length){
+      weatherRows=cached.rows;
+      updateDateLimits();
+      showError("Données hors connexion : dernière météo enregistrée utilisée.");
+      render(cached.savedAt);
+    }else{
+      showError("Impossible de récupérer la météo. "+error.message);
+    }
+  }finally{
+    setLoading(false);
+  }
+}
+
+function updateDateLimits(){
+  if(!weatherRows.length)return;
+
+  q("#programStart").min=weatherRows[0].date;
+  q("#programStart").max=weatherRows[weatherRows.length-1].date;
+  q("#lastIrrigation").min=weatherRows[0].date;
+  q("#lastIrrigation").max=weatherRows[weatherRows.length-1].date;
 }
 
 function systemRate(s){
   if(s.rateMode==="calculated"){
-    const den=num(s.emitterSpacing)*num(s.rowSpacing);
-    return den>0?num(s.emitterFlow)/den:0;
+    const denominator=num(s.emitterSpacing)*num(s.rowSpacing);
+    return denominator>0?num(s.emitterFlow)/denominator:0;
   }
+
   return num(s.knownRate);
+}
+
+function numberOfApplications(frequency,days){
+  switch(frequency){
+    case"daily":
+      return days;
+    case"every2":
+      return Math.ceil(days/2);
+    case"twiceWeekly":
+      return Math.max(1,Math.ceil(days*2/7));
+    case"weekly":
+      return Math.max(1,Math.ceil(days/7));
+    default:
+      return days;
+  }
+}
+
+function rowsBetween(start,end){
+  return weatherRows.filter(row=>row.date>=start&&row.date<=end);
 }
 
 function render(cachedAt=null){
   if(!weatherRows.length)return;
-  const s=settings(),today=localDate(new Date()),kc=activeKc(s);
-  const past=weatherRows.filter(r=>r.date>s.lastIrrigation&&r.date<=today);
-  const pastEtc=sum(past.map(r=>r.etp*kc));
-  const pastRainEff=sum(past.map(r=>r.rain))*num(s.rainEfficiency);
-  const pastDeficit=Math.max(0,pastEtc-pastRainEff);
 
-  const future=weatherRows.filter(r=>r.date>today).slice(0,7);
-  const futureGross=sum(future.map(r=>r.etp*kc));
-  const futureRain=sum(future.map(r=>r.rain));
-  const futureRainEff=futureRain*num(s.rainEfficiency);
-  const futureNet=Math.max(0,futureGross-futureRainEff);
+  const s=settings();
+  const start=s.programStart;
+  const days=Math.max(1,num(s.programDays,7));
+  const end=addDays(start,days-1);
+  const dayBeforeStart=addDays(start,-1);
 
-  const total=pastDeficit+futureNet;
-  const count=Math.max(1,num(s.frequency,7));
-  const dose=total/count;
+  if(s.lastIrrigation>dayBeforeStart){
+    showError("Le dernier arrosage doit être antérieur à la date de début de programmation.");
+    return;
+  }
+
+  const availableStart=weatherRows[0].date;
+  const availableEnd=weatherRows[weatherRows.length-1].date;
+
+  if(s.lastIrrigation<availableStart||end>availableEnd){
+    showError(
+      `La période choisie dépasse les données disponibles (${formatLongDate(availableStart)} au ${formatLongDate(availableEnd)}).`
+    );
+    return;
+  }
+
+  hideError();
+
+  const deficitRows=rowsBetween(addDays(s.lastIrrigation,1),dayBeforeStart);
+  const periodRows=rowsBetween(start,end);
+
+  if(periodRows.length!==days){
+    showError("Toutes les journées de la période choisie ne sont pas disponibles.");
+    return;
+  }
+
+  const pastEtc=sum(deficitRows.map(row=>row.etp*kcForDate(row.date,s)));
+  const pastEffectiveRain=sum(deficitRows.map(row=>row.rain))*num(s.rainEfficiency);
+  const pastDeficit=Math.max(0,pastEtc-pastEffectiveRain);
+
+  const periodGross=sum(periodRows.map(row=>row.etp*kcForDate(row.date,s)));
+  const periodRain=sum(periodRows.map(row=>row.rain));
+  const periodEffectiveRain=periodRain*num(s.rainEfficiency);
+  const periodNet=Math.max(0,periodGross-periodEffectiveRain);
+
+  const totalNeed=pastDeficit+periodNet;
+  const count=numberOfApplications(s.frequency,days);
+  const dose=totalNeed/count;
   const volume=dose*num(s.surfaceHa)*10;
   const rate=systemRate(s);
   const duration=rate>0?dose/rate:0;
 
-  q("#totalNeed").textContent=`${round(total,2)} mm`;
+  q("#resultPeriod").textContent=
+    `Du ${formatLongDate(start)} au ${formatLongDate(end)} inclus`;
+
+  q("#totalNeed").textContent=`${round(totalNeed,2)} mm`;
   q("#applicationCount").textContent=String(count);
   q("#dosePerApplication").textContent=`${round(dose,2)} mm`;
   q("#volumePerApplication").textContent=`${round(volume,1)} m³`;
   q("#durationPerApplication").textContent=formatDuration(duration);
+
   q("#pastDeficit").textContent=`${round(pastDeficit,2)} mm`;
-  q("#futureGrossNeed").textContent=`${round(futureGross,2)} mm`;
-  q("#futureRain").textContent=`${round(futureRain,2)} mm`;
-  q("#futureEffectiveRain").textContent=`${round(futureRainEff,2)} mm`;
-  q("#futureNetNeed").textContent=`${round(futureNet,2)} mm`;
-  q("#updatedAt").textContent=cachedAt?`Données enregistrées le ${new Date(cachedAt).toLocaleString("fr-FR")}`:`Météo actualisée à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
+  q("#periodGrossNeed").textContent=`${round(periodGross,2)} mm`;
+  q("#periodRain").textContent=`${round(periodRain,2)} mm`;
+  q("#periodEffectiveRain").textContent=`${round(periodEffectiveRain,2)} mm`;
+  q("#periodNetNeed").textContent=`${round(periodNet,2)} mm`;
+
+  q("#updatedAt").textContent=cachedAt
+    ?`Données enregistrées le ${new Date(cachedAt).toLocaleString("fr-FR")}`
+    :`Météo actualisée à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
+
   renderChart();
 }
 
-
-
 function renderChart(){
-  const canvas=q("#weatherChart"),ctx=canvas.getContext("2d"),ratio=window.devicePixelRatio||1;
-  const width=canvas.clientWidth||800,height=270;
-  canvas.width=width*ratio;canvas.height=height*ratio;ctx.scale(ratio,ratio);ctx.clearRect(0,0,width,height);
-  const today=localDate(new Date());
-  const rows=[...weatherRows.filter(r=>r.date<=today).slice(-7),...weatherRows.filter(r=>r.date>today).slice(0,7)];
+  const canvas=q("#weatherChart");
+  const context=canvas.getContext("2d");
+  const ratio=window.devicePixelRatio||1;
+  const width=canvas.clientWidth||800;
+  const height=270;
+
+  canvas.width=width*ratio;
+  canvas.height=height*ratio;
+  context.scale(ratio,ratio);
+  context.clearRect(0,0,width,height);
+
+  const s=settings();
+  const periodStart=s.programStart;
+  const periodEnd=addDays(periodStart,Math.max(1,num(s.programDays,7))-1);
+  const chartStart=addDays(periodStart,-7);
+
+  const rows=weatherRows.filter(row=>row.date>=chartStart&&row.date<=periodEnd);
+
   if(!rows.length)return;
-  const pad={left:48,right:12,top:20,bottom:42},w=width-pad.left-pad.right,h=height-pad.top-pad.bottom;
-  const max=Math.ceil(Math.max(1,...rows.flatMap(r=>[r.etp,r.rain])));
-  const group=w/rows.length,bar=Math.min(13,group*.25);
-  ctx.font="10px system-ui";ctx.textBaseline="middle";
-  for(let i=0;i<=4;i++){
-    const y=pad.top+h*i/4,v=max*(1-i/4);
-    ctx.strokeStyle="#e7dfe1";ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(width-pad.right,y);ctx.stroke();
-    ctx.fillStyle="#75686c";ctx.textAlign="right";ctx.fillText(`${round(v,1)} mm`,pad.left-6,y);
+
+  const padding={left:48,right:12,top:20,bottom:42};
+  const chartWidth=width-padding.left-padding.right;
+  const chartHeight=height-padding.top-padding.bottom;
+  const maximum=Math.ceil(Math.max(1,...rows.flatMap(row=>[row.etp,row.rain])));
+  const groupWidth=chartWidth/rows.length;
+  const barWidth=Math.min(13,groupWidth*.25);
+
+  context.font="10px system-ui";
+  context.textBaseline="middle";
+
+  for(let index=0;index<=4;index++){
+    const y=padding.top+chartHeight*index/4;
+    const value=maximum*(1-index/4);
+
+    context.strokeStyle="#e7dfe1";
+    context.beginPath();
+    context.moveTo(padding.left,y);
+    context.lineTo(width-padding.right,y);
+    context.stroke();
+
+    context.fillStyle="#75686c";
+    context.textAlign="right";
+    context.fillText(`${round(value,1)} mm`,padding.left-6,y);
   }
-  ctx.strokeStyle="#8f8185";ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,pad.top+h);ctx.lineTo(width-pad.right,pad.top+h);ctx.stroke();
-  rows.forEach((r,i)=>{
-    const x=pad.left+i*group+group/2;
-    draw(x-bar-2,r.etp,"#d98d3d");draw(x+2,r.rain,"#4b98c7");
-    ctx.fillStyle=r.date<=today?"#57494d":"#8B1E2D";ctx.font="9px system-ui";ctx.textAlign="center";ctx.textBaseline="alphabetic";
-    ctx.fillText(new Date(r.date+"T12:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}),x,height-14);
-    function draw(bx,v,c){const bh=v/max*h;ctx.fillStyle=c;ctx.fillRect(bx,pad.top+h-bh,bar,bh)}
+
+  context.strokeStyle="#8f8185";
+  context.beginPath();
+  context.moveTo(padding.left,padding.top);
+  context.lineTo(padding.left,padding.top+chartHeight);
+  context.lineTo(width-padding.right,padding.top+chartHeight);
+  context.stroke();
+
+  const labelStep=width<500
+    ?Math.max(1,Math.ceil(rows.length/7))
+    :width<700
+      ?Math.max(1,Math.ceil(rows.length/10))
+      :1;
+
+  rows.forEach((row,index)=>{
+    const x=padding.left+index*groupWidth+groupWidth/2;
+
+    drawBar(x-barWidth-2,row.etp,"#d98d3d");
+    drawBar(x+2,row.rain,"#4b98c7");
+
+    if(index%labelStep===0){
+      context.fillStyle=row.date<=localDate(new Date())?"#57494d":"#8B1E2D";
+      context.font=width<500?"8px system-ui":"9px system-ui";
+      context.textAlign="center";
+      context.textBaseline="alphabetic";
+      context.fillText(formatShortDate(row.date),x,height-14);
+    }
+
+    function drawBar(barX,value,color){
+      const barHeight=value/maximum*chartHeight;
+      context.fillStyle=color;
+      context.fillRect(
+        barX,
+        padding.top+chartHeight-barHeight,
+        barWidth,
+        barHeight
+      );
+    }
   });
-  const split=rows.findIndex(r=>r.date>today);
-  if(split>0){const x=pad.left+split*group;ctx.strokeStyle="#8B1E2D";ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(x,pad.top);ctx.lineTo(x,pad.top+h);ctx.stroke();ctx.setLineDash([])}
+
+  const today=localDate(new Date());
+  const forecastIndex=rows.findIndex(row=>row.date>today);
+
+  if(forecastIndex>0){
+    const x=padding.left+forecastIndex*groupWidth;
+    context.strokeStyle="#8B1E2D";
+    context.setLineDash([5,4]);
+    context.beginPath();
+    context.moveTo(x,padding.top);
+    context.lineTo(x,padding.top+chartHeight);
+    context.stroke();
+    context.setLineDash([]);
+  }
 }
 
 function useGps(){
   const status=q("#gpsStatus");
-  if(!navigator.geolocation){status.textContent="Géolocalisation indisponible.";return}
+
+  if(!navigator.geolocation){
+    status.textContent="Géolocalisation indisponible.";
+    return;
+  }
+
   status.textContent="Recherche de la position…";
-  navigator.geolocation.getCurrentPosition(p=>{
-    q("#latitude").value=round(p.coords.latitude,6);q("#longitude").value=round(p.coords.longitude,6);
-    status.textContent="Position trouvée. Clique sur Calculer la programmation.";
-  },()=>status.textContent="Impossible d’obtenir la position.",{enableHighAccuracy:true,timeout:15000});
+
+  navigator.geolocation.getCurrentPosition(
+    position=>{
+      q("#latitude").value=round(position.coords.latitude,6);
+      q("#longitude").value=round(position.coords.longitude,6);
+      status.textContent="Position trouvée. Clique sur Calculer la programmation.";
+    },
+    ()=>status.textContent="Impossible d’obtenir la position.",
+    {enableHighAccuracy:true,timeout:15000}
+  );
 }
-function setLoading(v){q("#refreshButton").disabled=v;q("#refreshButton").textContent=v?"…":"↻"}
-function showError(m){q("#errorMessage").hidden=false;q("#errorMessage").textContent=m}
-function hideError(){q("#errorMessage").hidden=true}
-function setupInstallPrompt(){window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;q("#installCard").hidden=false});window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;q("#installCard").hidden=true})}
-async function installApp(){if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;q("#installCard").hidden=true}
-function registerServiceWorker(){if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js").catch(console.error)}
+
+function setLoading(loading){
+  q("#refreshButton").disabled=loading;
+  q("#refreshButton").textContent=loading?"…":"↻";
+}
+
+function showError(message){
+  q("#errorMessage").hidden=false;
+  q("#errorMessage").textContent=message;
+}
+
+function hideError(){
+  q("#errorMessage").hidden=true;
+}
+
+function setupInstallPrompt(){
+  window.addEventListener("beforeinstallprompt",event=>{
+    event.preventDefault();
+    deferredInstallPrompt=event;
+    q("#installCard").hidden=false;
+  });
+
+  window.addEventListener("appinstalled",()=>{
+    deferredInstallPrompt=null;
+    q("#installCard").hidden=true;
+  });
+}
+
+async function installApp(){
+  if(!deferredInstallPrompt)return;
+
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt=null;
+  q("#installCard").hidden=true;
+}
+
+function registerServiceWorker(){
+  if("serviceWorker"in navigator){
+    navigator.serviceWorker.register("./service-worker.js").catch(console.error);
+  }
+}

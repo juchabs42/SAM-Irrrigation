@@ -18,3 +18,17 @@ h2{margin:0 0 14px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax
 .legend{font-size:.82rem;color:#75686c}
 canvas{width:100%;display:block}.formula-card p{margin:8px 0}.install-card{border:1px solid #e0cbd0}.error{background:#ffe8e8;color:#8d1e2d;padding:13px;border-radius:12px}.attribution{text-align:center;color:#86787c;font-size:.75rem}
 @media(max-width:680px){.form-grid,.result-grid{grid-template-columns:1fr}.topbar{align-items:flex-start}.ghost-button{font-size:.78rem}.brand img{width:52px}}
+
+.period-preview{
+  margin-top:14px;
+  padding:13px 15px;
+  border-radius:13px;
+  background:#f6e7ea;
+  color:#641522;
+}
+.result-period{
+  margin:0 0 12px;
+  text-align:center;
+  color:#75686c;
+  font-weight:700;
+}

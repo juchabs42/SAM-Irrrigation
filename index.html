@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#8B1E2D">
-  <meta name="description" content="Calculatrice hebdomadaire de programmation de l'irrigation.">
+  <meta name="description" content="Calculatrice de programmation de l'irrigation sur une période personnalisée.">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
   <link rel="stylesheet" href="./css/style.css">
@@ -35,30 +35,50 @@
 
   <section class="card">
     <p class="eyebrow">Paramètres de calcul</p>
-    <h2>Préparer la programmation des 7 prochains jours</h2>
+    <h2>Choisir la période à programmer</h2>
 
     <div class="form-grid">
-      <label>Surface (ha)
-        <input id="surfaceHa" type="number" min="0.01" step="0.01">
+      <label>Date de début de programmation
+        <input id="programStart" type="date">
       </label>
+
+      <label>Durée de programmation
+        <select id="programDays">
+          <option value="3">3 jours</option>
+          <option value="5">5 jours</option>
+          <option value="7">7 jours</option>
+          <option value="10">10 jours</option>
+          <option value="14">14 jours</option>
+        </select>
+      </label>
+
       <label>Dernier arrosage
         <input id="lastIrrigation" type="date">
       </label>
+
+      <label>Surface (ha)
+        <input id="surfaceHa" type="number" min="0.01" step="0.01">
+      </label>
+
       <label>Latitude
         <input id="latitude" type="number" min="-90" max="90" step="0.000001">
       </label>
+
       <label>Longitude
         <input id="longitude" type="number" min="-180" max="180" step="0.000001">
       </label>
+
       <label>Fréquence d'irrigation
         <select id="frequency">
-          <option value="7">Tous les jours — 7 apports</option>
-          <option value="4">Tous les 2 jours — 4 apports</option>
-          <option value="2">2 fois par semaine</option>
-          <option value="1">1 fois par semaine</option>
+          <option value="daily">Tous les jours</option>
+          <option value="every2">Tous les 2 jours</option>
+          <option value="twiceWeekly">2 fois par semaine</option>
+          <option value="weekly">1 fois par semaine</option>
         </select>
       </label>
     </div>
+
+    <div id="periodPreview" class="period-preview"></div>
 
     <div class="button-row">
       <button id="gpsButton" class="secondary-button">Utiliser ma position</button>
@@ -68,10 +88,12 @@
   </section>
 
   <section class="card result-card">
-    <p class="eyebrow">Programmation recommandée pour les 7 prochains jours</p>
+    <p class="eyebrow">Programmation recommandée pour la période choisie</p>
+    <p id="resultPeriod" class="result-period">—</p>
+
     <div class="main-result">
       <strong id="totalNeed">— mm</strong>
-      <span>à programmer sur la semaine</span>
+      <span>à programmer sur la période</span>
     </div>
 
     <div class="result-grid">
@@ -80,16 +102,16 @@
       <article><span>Volume par apport</span><strong id="volumePerApplication">— m³</strong></article>
       <article><span>Durée par apport</span><strong id="durationPerApplication">—</strong></article>
     </div>
-</section>
+  </section>
 
   <section class="card">
     <p class="eyebrow">Composition du besoin</p>
     <div class="result-grid">
-      <article><span>Déficit depuis le dernier arrosage</span><strong id="pastDeficit">— mm</strong></article>
-      <article><span>Besoin prévisionnel brut à 7 jours</span><strong id="futureGrossNeed">— mm</strong></article>
-      <article><span>Pluie prévue à 7 jours</span><strong id="futureRain">— mm</strong></article>
-      <article><span>Pluie efficace prévue</span><strong id="futureEffectiveRain">— mm</strong></article>
-      <article><span>Besoin prévisionnel net</span><strong id="futureNetNeed">— mm</strong></article>
+      <article><span>Déficit avant la période</span><strong id="pastDeficit">— mm</strong></article>
+      <article><span>Besoin brut de la période</span><strong id="periodGrossNeed">— mm</strong></article>
+      <article><span>Pluie sur la période</span><strong id="periodRain">— mm</strong></article>
+      <article><span>Pluie efficace sur la période</span><strong id="periodEffectiveRain">— mm</strong></article>
+      <article><span>Besoin net de la période</span><strong id="periodNetNeed">— mm</strong></article>
     </div>
   </section>
 
@@ -97,12 +119,14 @@
     <section class="card">
       <p class="eyebrow">Réglages agronomiques</p>
       <div class="form-grid">
-        <label>Kc du mois
+        <label>Kc personnalisé
           <input id="kcValue" type="number" min="0" max="2" step="0.05">
         </label>
+
         <label>Coefficient de pluie efficace
           <input id="rainEfficiency" type="number" min="0" max="1" step="0.05">
         </label>
+
         <label>Type de système
           <select id="systemType">
             <option value="drip">Goutte-à-goutte</option>
@@ -110,41 +134,49 @@
             <option value="sprinkler">Aspersion</option>
           </select>
         </label>
+
         <label>Méthode de pluviométrie
           <select id="rateMode">
             <option value="known">Pluviométrie connue</option>
             <option value="calculated">Calcul depuis les émetteurs</option>
           </select>
         </label>
+
         <label id="knownRateLabel">Pluviométrie connue (mm/h)
           <input id="knownRate" type="number" min="0.01" step="0.01">
         </label>
+
         <label id="emitterFlowLabel">Débit d'un émetteur (L/h)
           <input id="emitterFlow" type="number" min="0.01" step="0.01">
         </label>
+
         <label id="emitterSpacingLabel">Espacement des émetteurs (m)
           <input id="emitterSpacing" type="number" min="0.01" step="0.01">
         </label>
+
         <label id="rowSpacingLabel">Écartement des rangs (m)
           <input id="rowSpacing" type="number" min="0.01" step="0.01">
         </label>
       </div>
+
+      <button id="resetKcButton" class="secondary-button">Revenir aux Kc mensuels</button>
       <button id="saveExpertButton" class="primary-button">Enregistrer les réglages experts</button>
       <p id="kcInfo" class="muted"></p>
     </section>
-<section class="card">
+
+    <section class="card">
       <p class="eyebrow">Météo</p>
-      <h2>7 jours passés et 7 jours prévus</h2>
+      <h2>Période de calcul et jours précédents</h2>
       <canvas id="weatherChart" height="270"></canvas>
-      <p class="legend">Orange : ETP · Bleu : pluie · trait rouge pointillé : début des prévisions</p>
+      <p class="legend">Orange : ETP · Bleu : pluie</p>
     </section>
 
     <section class="card formula-card">
       <p class="eyebrow">Formules</p>
-      <p><strong>ETc = ET₀ × Kc</strong></p>
-      <p><strong>Déficit passé = ETc cumulée − pluie efficace passée</strong></p>
-      <p><strong>Besoin futur net = ETc prévue − pluie efficace prévue</strong></p>
-      <p><strong>Besoin total = déficit passé + besoin futur net</strong></p>
+      <p><strong>ETc journalière = ET₀ × Kc du mois</strong></p>
+      <p><strong>Déficit avant la période = ETc − pluie efficace depuis le dernier arrosage jusqu'à la veille du début</strong></p>
+      <p><strong>Besoin net de la période = ETc de la période − pluie efficace de la période</strong></p>
+      <p><strong>Besoin total = déficit avant la période + besoin net de la période</strong></p>
       <p><strong>Dose par apport = besoin total ÷ nombre d'apports</strong></p>
       <p><strong>Volume (m³) = dose (mm) × surface (ha) × 10</strong></p>
       <p><strong>Durée (h) = dose (mm) ÷ pluviométrie (mm/h)</strong></p>

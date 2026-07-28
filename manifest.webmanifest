@@ -2,7 +2,7 @@
   "id": "/sam-irrigation/",
   "name": "SAM Irrigation",
   "short_name": "SAM Irrigation",
-  "description": "Calculatrice hebdomadaire de programmation de l'irrigation.",
+  "description": "Calculatrice de programmation de l'irrigation sur une période personnalisée.",
   "lang": "fr-FR",
   "start_url": "./?source=pwa",
   "scope": "./",
