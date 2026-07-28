@@ -220,18 +220,24 @@ function renderChart(){
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
 
-    ctx.fillText(
-      new Date(r.date + "T12:00:00")
-        .toLocaleDateString(
-          "fr-FR",
-          {
-            day: "2-digit",
-            month: "2-digit"
-          }
-        ),
-      x,
-      height - 14
-    );
+    const estTelephone =
+  window.matchMedia("(max-width: 600px)").matches;
+
+const afficherDate =
+  !estTelephone ||
+  i % 2 === 0;
+
+if (afficherDate) {
+  ctx.fillText(
+    new Date(r.date + "T12:00:00")
+      .toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit"
+      }),
+    x,
+    height - 14
+  );
+}
   }
     function draw(bx,v,c){const bh=v/max*h;ctx.fillStyle=c;ctx.fillRect(bx,pad.top+h-bh,bar,bh)}
   });
