@@ -2,7 +2,7 @@
   "id": "/sam-irrigation/",
   "name": "SAM Irrigation",
   "short_name": "SAM Irrigation",
-  "description": "Outil de conseil en irrigation pour les adhérents SAM.",
+  "description": "Calculatrice hebdomadaire de programmation de l'irrigation.",
   "lang": "fr-FR",
   "start_url": "./?source=pwa",
   "scope": "./",
@@ -11,8 +11,23 @@
   "background_color": "#f5f1f2",
   "theme_color": "#8B1E2D",
   "icons": [
-    {"src":"./assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
-    {"src":"./assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
-    {"src":"./assets/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
