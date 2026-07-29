@@ -106,20 +106,20 @@ switch(systemType){
     case "micro":
       return{
         percent:60,
-        message:"Valeur conseillée : 60 %."
+        message:"Valeur recommandée pour la part de pluie en micro-aspersion : 60 %."
       };
 
     case "sprinkler":
       return{
         percent:90,
-        message:"Valeur conseillée : 90 %."
+        message:"Valeur recommandée pour la part de pluie en aspersion : 90 %."
       };
 
     case "drip":
     default:
       return{
         percent:25,
-        message:"Valeur conseillée : 25 %."
+        message:"Valeur recommandée pour la part de pluie en goutte-à-goutte : 25 %."
       };
 
   }
@@ -239,8 +239,7 @@ q("#kcInfo").innerHTML =
 `Kc mensuels automatiques :
 <br>
 Avril 0,60 · Mai 0,60 · Juin 0,75 · Juillet 0,90 · Août 0,90 · Septembre 0,90 · Octobre 0,60
-<br><br>
-La part de pluie prise en compte dépend de la surface du système racinaire alimentée par votre système d'irrigation.`;
+`;
 }
 
 
