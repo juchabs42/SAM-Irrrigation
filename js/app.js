@@ -9,7 +9,8 @@ const DEFAULTS={
   programStart:localDate(new Date()),
   programDays:7,
   frequency:"daily",
-  rainEfficiency:80,
+  rainEfficiency:25,
+  rainAutoSystem:null,
   kcOverride:null,
   systemType:"drip",
   rateMode:"known",
@@ -99,12 +100,48 @@ function kcForDate(dateString,settingsValue){
   return monthlyKc(dateString);
 }
 
+function rainRecommendationForSystem(systemType){
+  switch(systemType){
+    case"micro":
+      return{
+        percent:60,
+        message:"Valeur conseillée : 60 %, car une plus grande partie du système racinaire peut bénéficier de la pluie en micro-aspersion."
+      };
+    case"sprinkler":
+      return{
+        percent:90,
+        message:"Valeur conseillée : 90 %, car la pluie peut profiter à presque toute la surface explorée par le système racinaire en aspersion."
+      };
+    case"drip":
+    default:
+      return{
+        percent:25,
+        message:"Valeur conseillée : 25 %, car en goutte-à-goutte seule une partie du système racinaire peut profiter directement de la pluie."
+      };
+  }
+}
+
+function updateRainRecommendation(applyValue=false){
+  const systemType=val("systemType")||"drip";
+  const recommendation=rainRecommendationForSystem(systemType);
+
+  if(applyValue){
+    q("#rainEfficiency").value=recommendation.percent;
+  }
+
+  const help=q("#rainHelp");
+  if(help){
+    help.textContent=recommendation.message;
+  }
+}
+
 function bindEvents(){
   q("#refreshButton").addEventListener("click",refreshWeather);
   q("#gpsButton").addEventListener("click",useGps);
   q("#calculateButton").addEventListener("click",saveMainAndCalculate);
   q("#resetKcButton").addEventListener("click",resetKc);
   q("#rateMode").addEventListener("change",toggleRateFields);
+  q("#systemType").addEventListener("change",()=>updateRainRecommendation(true));
   q("#programStart").addEventListener("change",updatePeriodPreview);
   q("#programDays").addEventListener("change",updatePeriodPreview);
   q("#installButton").addEventListener("click",installApp);
@@ -125,9 +162,19 @@ function loadForm(){
       ? num(s.rainEfficiency,0.8) * 100
       : num(s.rainEfficiency,80);
 
-  q("#rainEfficiency").value=round(rainEfficiencyPercent,0);
+  if(s.rainAutoSystem===null){
+    const recommendation=rainRecommendationForSystem(s.systemType);
+    s.rainEfficiency=recommendation.percent;
+    s.rainAutoSystem=s.systemType;
+    persist(s);
+    q("#rainEfficiency").value=recommendation.percent;
+  }else{
+    q("#rainEfficiency").value=round(rainEfficiencyPercent,0);
+  }
+
   q("#kcValue").value=s.kcOverride===null?"":s.kcOverride;
   updateKcInfo();
+  updateRainRecommendation(false);
   toggleRateFields();
 }
 
@@ -153,6 +200,7 @@ function saveMainAndCalculate(){
   s.rainEfficiency=num(val("rainEfficiency"),80);
   s.kcOverride=val("kcValue")===""?null:num(val("kcValue"));
   s.systemType=val("systemType");
+  s.rainAutoSystem=s.systemType;
   s.rateMode=val("rateMode");
   s.knownRate=num(val("knownRate"),3);
   s.emitterFlow=num(val("emitterFlow"),1.6);
@@ -480,7 +528,7 @@ function useGps(){
     position=>{
       q("#latitude").value=round(position.coords.latitude,6);
       q("#longitude").value=round(position.coords.longitude,6);
-      status.textContent="Position trouvée. Clique sur Calculer la programmation.";
+      status.textContent="Position mise à jour.";
     },
     ()=>status.textContent="Impossible d’obtenir la position.",
     {enableHighAccuracy:true,timeout:15000}

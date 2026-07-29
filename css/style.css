@@ -44,3 +44,41 @@ canvas{width:100%;display:block}.formula-card p{margin:8px 0}.install-card{borde
   color:#641522;
   font-size:1rem;
 }
+
+
+.field-help{
+  display:block;
+  margin-top:2px;
+  color:#7b6b70;
+  font-size:.78rem;
+  font-weight:500;
+  line-height:1.35;
+}
+.rain-help{
+  margin:10px 0 0;
+  padding:11px 13px;
+  border-left:4px solid var(--red);
+  border-radius:9px;
+  background:var(--red-soft);
+  color:#641522;
+  font-size:.86rem;
+  line-height:1.45;
+}
+.info-box{
+  margin-top:10px;
+  padding:10px 13px;
+  border:1px solid #eadde0;
+  border-radius:11px;
+  background:#fff;
+  color:#5f5054;
+  font-size:.84rem;
+}
+.info-box summary{
+  cursor:pointer;
+  color:#641522;
+  font-weight:800;
+}
+.info-box p{
+  margin:9px 0 2px;
+  line-height:1.45;
+}

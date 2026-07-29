@@ -1,5 +1,5 @@
 
-const CACHE="sam-irrigation-interface-finale-v1";
+const CACHE="sam-irrigation-pluie-racinaire-v1";
 const ASSETS=[
   "./","./index.html","./css/style.css","./js/app.js","./manifest.webmanifest",
   "./assets/logo-sudexpe.jpg","./assets/icon-192.png","./assets/icon-512.png",

@@ -1,29 +1,15 @@
-SAM IRRIGATION — INTERFACE FINALE
+SAM IRRIGATION — PART DE PLUIE SELON LE SYSTÈME RACINAIRE
 
-Cette version remplace les précédentes.
-
-ORDRE DU BLOC « PARAMÈTRES DE LA PARCELLE »
-
-Système d’irrigation :
-- Système d’irrigation
-- Calcul de la pluviométrie
-- Pluviométrie (mm/h)
-- Débit de l’émetteur (L/h)
-- Espacement entre émetteurs (m)
-- Inter-rang (m)
-
-Localisation :
-- Latitude
-- Longitude
-- Bouton Utiliser ma position
-
-Paramètres de calcul :
-- Kc (laisser vide = automatique)
-- Pluie efficace prise en compte (%)
-- Surface de la parcelle (ha)
-
-Le coefficient de pluie efficace est maintenant saisi en pourcentage :
-80 signifie 80 %.
+MODIFICATIONS
+- Le champ s'appelle désormais « Part de pluie prise en compte (%) ».
+- La valeur est proposée automatiquement lors du choix du système :
+  - goutte-à-goutte : 25 % ;
+  - micro-aspersion : 60 % ;
+  - aspersion : 90 %.
+- Le producteur peut ensuite modifier librement la valeur proposée.
+- Une explication dynamique est affichée sous les Kc.
+- Une aide ⓘ explique le rôle de ce pourcentage dans le calcul.
+- Après la géolocalisation, le message est simplement « Position mise à jour. ».
 
 MISE À JOUR GITHUB
 1. Décompresse le ZIP.
