@@ -32,3 +32,7 @@ canvas{width:100%;display:block}.formula-card p{margin:8px 0}.install-card{borde
   color:#75686c;
   font-weight:700;
 }
+
+/* Interface unique */
+.top-actions{display:flex;align-items:center}
+.card .button-row{margin-top:14px}

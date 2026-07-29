@@ -16,8 +16,7 @@ const DEFAULTS={
   knownRate:3,
   emitterFlow:1.6,
   emitterSpacing:.5,
-  rowSpacing:4,
-  expert:false
+  rowSpacing:4
 };
 
 const STORAGE_KEY="samIrrigationPeriodV1";
@@ -97,10 +96,8 @@ function kcForDate(dateString,settingsValue){
 
 function bindEvents(){
   q("#refreshButton").addEventListener("click",refreshWeather);
-  q("#modeButton").addEventListener("click",toggleMode);
   q("#gpsButton").addEventListener("click",useGps);
   q("#calculateButton").addEventListener("click",saveMainAndCalculate);
-  q("#saveExpertButton").addEventListener("click",saveExpert);
   q("#resetKcButton").addEventListener("click",resetKc);
   q("#rateMode").addEventListener("change",toggleRateFields);
   q("#programStart").addEventListener("change",updatePeriodPreview);
@@ -120,7 +117,6 @@ function loadForm(){
 
   q("#kcValue").value=s.kcOverride===null?"":s.kcOverride;
   updateKcInfo();
-  applyMode(s.expert);
   toggleRateFields();
 }
 
@@ -143,15 +139,6 @@ function saveMainAndCalculate(){
   s.programStart=val("programStart");
   s.programDays=num(val("programDays"),7);
   s.frequency=val("frequency");
-
-  persist(s);
-  updatePeriodPreview();
-  refreshWeather();
-}
-
-function saveExpert(){
-  const s=settings();
-
   s.rainEfficiency=num(val("rainEfficiency"),.8);
   s.kcOverride=val("kcValue")===""?null:num(val("kcValue"));
   s.systemType=val("systemType");
@@ -162,9 +149,10 @@ function saveExpert(){
   s.rowSpacing=num(val("rowSpacing"),4);
 
   persist(s);
-  updateKcInfo();
-  render();
+  updatePeriodPreview();
+  refreshWeather();
 }
+
 
 function resetKc(){
   const s=settings();
@@ -187,17 +175,7 @@ function updateKcInfo(){
     "Kc mensuels automatiques : avril 0,60 · mai 0,60 · juin 0,75 · juillet 0,90 · août 0,90 · septembre 0,90 · octobre 0,60.";
 }
 
-function toggleMode(){
-  const s=settings();
-  s.expert=!s.expert;
-  persist(s);
-  applyMode(s.expert);
-}
 
-function applyMode(expert){
-  q("#expertSection").hidden=!expert;
-  q("#modeButton").textContent=expert?"Mode Simple":"Mode Expert";
-}
 
 function toggleRateFields(){
   const calculated=val("rateMode")==="calculated";

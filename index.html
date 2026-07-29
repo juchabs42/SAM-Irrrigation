@@ -20,7 +20,6 @@
     </div>
   </div>
   <div class="top-actions">
-    <button id="modeButton" class="ghost-button">Mode Expert</button>
     <button id="refreshButton" class="icon-button" aria-label="Actualiser">↻</button>
   </div>
 </header>
@@ -34,91 +33,17 @@
   </section>
 
   <section class="card">
-    <p class="eyebrow">Paramètres de calcul</p>
-    <h2>Choisir la période à programmer</h2>
-
-    <div class="form-grid">
-      <label>Date de début de programmation
-        <input id="programStart" type="date">
-      </label>
-
-      <label>Durée de programmation
-        <select id="programDays">
-          <option value="3">3 jours</option>
-          <option value="5">5 jours</option>
-          <option value="7">7 jours</option>
-          <option value="10">10 jours</option>
-          <option value="14">14 jours</option>
-        </select>
-      </label>
-
-      <label>Dernier arrosage
-        <input id="lastIrrigation" type="date">
-      </label>
-
-      <label>Surface (ha)
-        <input id="surfaceHa" type="number" min="0.01" step="0.01">
-      </label>
-
-      <label>Latitude
-        <input id="latitude" type="number" min="-90" max="90" step="0.000001">
-      </label>
-
-      <label>Longitude
-        <input id="longitude" type="number" min="-180" max="180" step="0.000001">
-      </label>
-
-      <label>Fréquence d'irrigation
-        <select id="frequency">
-          <option value="daily">Tous les jours</option>
-          <option value="every2">Tous les 2 jours</option>
-          <option value="twiceWeekly">2 fois par semaine</option>
-          <option value="weekly">1 fois par semaine</option>
-        </select>
-      </label>
-    </div>
-
-    <div id="periodPreview" class="period-preview"></div>
-
-    <div class="button-row">
-      <button id="gpsButton" class="secondary-button">Utiliser ma position</button>
-      <button id="calculateButton" class="primary-button">Calculer la programmation</button>
-    </div>
-    <p id="gpsStatus" class="muted"></p>
-  </section>
-
-  <section class="card result-card">
-    <p class="eyebrow">Programmation recommandée pour la période choisie</p>
-    <p id="resultPeriod" class="result-period">—</p>
-
-    <div class="main-result">
-      <strong id="totalNeed">— mm</strong>
-      <span>à programmer sur la période</span>
-    </div>
-
-    <div class="result-grid">
-      <article><span>Nombre d'apports</span><strong id="applicationCount">—</strong></article>
-      <article><span>Dose par apport</span><strong id="dosePerApplication">— mm</strong></article>
-      <article><span>Volume par apport</span><strong id="volumePerApplication">— m³</strong></article>
-      <article><span>Durée par apport</span><strong id="durationPerApplication">—</strong></article>
-    </div>
-  </section>
-
-  <section class="card">
-    <p class="eyebrow">Composition du besoin</p>
-    <div class="result-grid">
-      <article><span>Déficit avant la période</span><strong id="pastDeficit">— mm</strong></article>
-      <article><span>Besoin brut de la période</span><strong id="periodGrossNeed">— mm</strong></article>
-      <article><span>Pluie sur la période</span><strong id="periodRain">— mm</strong></article>
-      <article><span>Pluie efficace sur la période</span><strong id="periodEffectiveRain">— mm</strong></article>
-      <article><span>Besoin net de la période</span><strong id="periodNetNeed">— mm</strong></article>
-    </div>
-  </section>
-
-  <section id="expertSection" hidden>
-    <section class="card">
-      <p class="eyebrow">Réglages agronomiques</p>
+      <p class="eyebrow">Paramètres agronomiques</p>
       <div class="form-grid">
+        <label>Surface (ha)
+          <input id="surfaceHa" type="number" min="0.01" step="0.01">
+        </label>
+        <label>Latitude
+          <input id="latitude" type="number" min="-90" max="90" step="0.000001">
+        </label>
+        <label>Longitude
+          <input id="longitude" type="number" min="-180" max="180" step="0.000001">
+        </label>
         <label>Kc personnalisé
           <input id="kcValue" type="number" min="0" max="2" step="0.05">
         </label>
@@ -159,10 +84,85 @@
         </label>
       </div>
 
-      <button id="resetKcButton" class="secondary-button">Revenir aux Kc mensuels</button>
-      <button id="saveExpertButton" class="primary-button">Enregistrer les réglages experts</button>
+      <div class="button-row">
+        <button id="gpsButton" class="secondary-button">Utiliser ma position</button>
+        <button id="resetKcButton" class="secondary-button">Revenir aux Kc mensuels</button>
+      </div>
+      <p id="gpsStatus" class="muted"></p>
+      
       <p id="kcInfo" class="muted"></p>
     </section>
+
+  <section class="card">
+    <p class="eyebrow">Période de programmation</p>
+    <h2>Dates et fréquence d’irrigation</h2>
+
+    <div class="form-grid">
+      <label>Date de début de programmation
+        <input id="programStart" type="date">
+      </label>
+
+      <label>Durée de programmation
+        <select id="programDays">
+          <option value="3">3 jours</option>
+          <option value="5">5 jours</option>
+          <option value="7">7 jours</option>
+          <option value="10">10 jours</option>
+          <option value="14">14 jours</option>
+        </select>
+      </label>
+
+      <label>Dernier arrosage
+        <input id="lastIrrigation" type="date">
+      </label>
+
+      <label>Fréquence d'irrigation
+        <select id="frequency">
+          <option value="daily">Tous les jours</option>
+          <option value="every2">Tous les 2 jours</option>
+          <option value="twiceWeekly">2 fois par semaine</option>
+          <option value="weekly">1 fois par semaine</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="periodPreview" class="period-preview"></div>
+
+    <div class="button-row">
+      <button id="calculateButton" class="primary-button">Calculer la programmation</button>
+    </div>
+  </section>
+
+  <section class="card result-card">
+    <p class="eyebrow">Programmation recommandée pour la période choisie</p>
+    <p id="resultPeriod" class="result-period">—</p>
+
+    <div class="main-result">
+      <strong id="totalNeed">— mm</strong>
+      <span>à programmer sur la période</span>
+    </div>
+
+    <div class="result-grid">
+      <article><span>Nombre d'apports</span><strong id="applicationCount">—</strong></article>
+      <article><span>Dose par apport</span><strong id="dosePerApplication">— mm</strong></article>
+      <article><span>Volume par apport</span><strong id="volumePerApplication">— m³</strong></article>
+      <article><span>Durée par apport</span><strong id="durationPerApplication">—</strong></article>
+    </div>
+  </section>
+
+  <section class="card">
+    <p class="eyebrow">Composition du besoin</p>
+    <div class="result-grid">
+      <article><span>Déficit avant la période</span><strong id="pastDeficit">— mm</strong></article>
+      <article><span>Besoin brut de la période</span><strong id="periodGrossNeed">— mm</strong></article>
+      <article><span>Pluie sur la période</span><strong id="periodRain">— mm</strong></article>
+      <article><span>Pluie efficace sur la période</span><strong id="periodEffectiveRain">— mm</strong></article>
+      <article><span>Besoin net de la période</span><strong id="periodNetNeed">— mm</strong></article>
+    </div>
+  </section>
+
+  
+    
 
     <section class="card">
       <p class="eyebrow">Météo</p>
@@ -181,7 +181,7 @@
       <p><strong>Volume (m³) = dose (mm) × surface (ha) × 10</strong></p>
       <p><strong>Durée (h) = dose (mm) ÷ pluviométrie (mm/h)</strong></p>
     </section>
-  </section>
+
 
   <p id="updatedAt" class="muted center"></p>
   <p id="errorMessage" class="error" hidden></p>
