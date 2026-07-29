@@ -101,24 +101,29 @@ function kcForDate(dateString,settingsValue){
 }
 
 function rainRecommendationForSystem(systemType){
-  switch(systemType){
-    case"micro":
+switch(systemType){
+
+    case "micro":
       return{
         percent:60,
-        message:"Valeur conseillée : 60 %, car une plus grande partie du système racinaire peut bénéficier de la pluie en micro-aspersion."
+        message:"Valeur conseillée : 60 %."
       };
-    case"sprinkler":
+
+    case "sprinkler":
       return{
         percent:90,
-        message:"Valeur conseillée : 90 %, car la pluie peut profiter à presque toute la surface explorée par le système racinaire en aspersion."
+        message:"Valeur conseillée : 90 %."
       };
-    case"drip":
+
+    case "drip":
     default:
       return{
         percent:25,
-        message:"Valeur conseillée : 25 %, car en goutte-à-goutte seule une partie du système racinaire peut profiter directement de la pluie."
+        message:"Valeur conseillée : 25 %."
       };
+
   }
+
 }
 
 function updateRainRecommendation(applyValue=false){
@@ -230,8 +235,12 @@ function updateKcInfo(){
     return;
   }
 
-  q("#kcInfo").textContent=
-    "Kc mensuels automatiques : avril 0,60 · mai 0,60 · juin 0,75 · juillet 0,90 · août 0,90 · septembre 0,90 · octobre 0,60.";
+q("#kcInfo").innerHTML =
+`Kc mensuels automatiques :
+<br>
+Avril 0,60 · Mai 0,60 · Juin 0,75 · Juillet 0,90 · Août 0,90 · Septembre 0,90 · Octobre 0,60
+<br><br>
+La part de pluie prise en compte dépend de la surface du système racinaire alimentée par votre système d'irrigation.`;
 }
 
 
