@@ -36,3 +36,11 @@ canvas{width:100%;display:block}.formula-card p{margin:8px 0}.install-card{borde
 /* Interface unique */
 .top-actions{display:flex;align-items:center}
 .card .button-row{margin-top:14px}
+
+.subheading{
+  margin:22px 0 12px;
+  padding-bottom:7px;
+  border-bottom:1px solid #eadde0;
+  color:#641522;
+  font-size:1rem;
+}

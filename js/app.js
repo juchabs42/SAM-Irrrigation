@@ -9,7 +9,7 @@ const DEFAULTS={
   programStart:localDate(new Date()),
   programDays:7,
   frequency:"daily",
-  rainEfficiency:.8,
+  rainEfficiency:80,
   kcOverride:null,
   systemType:"drip",
   rateMode:"known",
@@ -82,6 +82,11 @@ function persist(settingsValue){
   localStorage.setItem(STORAGE_KEY,JSON.stringify(settingsValue));
 }
 
+function rainEfficiencyCoefficient(settingsValue){
+  const stored=num(settingsValue.rainEfficiency,80);
+  return stored>1?stored/100:stored;
+}
+
 function monthlyKc(dateString){
   const month=new Date(dateString+"T12:00:00").getMonth()+1;
   return KC_BY_MONTH[month]??0;
@@ -111,10 +116,16 @@ function loadForm(){
 
   [
     "surfaceHa","latitude","longitude","lastIrrigation","programStart",
-    "programDays","frequency","rainEfficiency","systemType","rateMode",
+    "programDays","frequency","systemType","rateMode",
     "knownRate","emitterFlow","emitterSpacing","rowSpacing"
   ].forEach(id=>q("#"+id).value=s[id]);
 
+  const rainEfficiencyPercent =
+    num(s.rainEfficiency,80) <= 1
+      ? num(s.rainEfficiency,0.8) * 100
+      : num(s.rainEfficiency,80);
+
+  q("#rainEfficiency").value=round(rainEfficiencyPercent,0);
   q("#kcValue").value=s.kcOverride===null?"":s.kcOverride;
   updateKcInfo();
   toggleRateFields();
@@ -139,7 +150,7 @@ function saveMainAndCalculate(){
   s.programStart=val("programStart");
   s.programDays=num(val("programDays"),7);
   s.frequency=val("frequency");
-  s.rainEfficiency=num(val("rainEfficiency"),.8);
+  s.rainEfficiency=num(val("rainEfficiency"),80);
   s.kcOverride=val("kcValue")===""?null:num(val("kcValue"));
   s.systemType=val("systemType");
   s.rateMode=val("rateMode");
@@ -318,12 +329,12 @@ function render(cachedAt=null){
   }
 
   const pastEtc=sum(deficitRows.map(row=>row.etp*kcForDate(row.date,s)));
-  const pastEffectiveRain=sum(deficitRows.map(row=>row.rain))*num(s.rainEfficiency);
+  const pastEffectiveRain=sum(deficitRows.map(row=>row.rain))*rainEfficiencyCoefficient(s);
   const pastDeficit=Math.max(0,pastEtc-pastEffectiveRain);
 
   const periodGross=sum(periodRows.map(row=>row.etp*kcForDate(row.date,s)));
   const periodRain=sum(periodRows.map(row=>row.rain));
-  const periodEffectiveRain=periodRain*num(s.rainEfficiency);
+  const periodEffectiveRain=periodRain*rainEfficiencyCoefficient(s);
   const periodNet=Math.max(0,periodGross-periodEffectiveRain);
 
   const totalNeed=pastDeficit+periodNet;
